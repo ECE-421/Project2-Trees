@@ -1,0 +1,7 @@
+avl_trees/target/*
+avl_trees/target/.rustc_info.json
+avl_trees/Cargo.lock
+
+red_black_trees/target/*
+red_black_trees/target/.rustc_info.json
+red_black_trees/Cargo.lock
