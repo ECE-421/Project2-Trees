@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::fmt;
+use std::{clone, fmt};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum NodeColor {
@@ -42,7 +42,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> {
 
         if let Some(root) = &self.root {
             self.insert_recursive(root.clone(), new_node.clone());
-            self.fix_insert(new_node);
+            self.fix_insert(new_node.clone());
             // TODO: Perform any necessary balancing
         } else {
             // If the tree is empty, make the new node the root and color it black
@@ -72,19 +72,47 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> {
     }
 
     fn fix_insert(&mut self, new_node: Tree<T>) {
-       
-        let node = new_node.borrow_mut();
-    
+        let node = new_node.borrow();
+        // let node = new_node.borrow_mut();
+        println!("\nNode: {:?}", node.key);
+        // check if node has a parent
         if let Some(parent) = &node.parent {
-            let grandparent = match parent.borrow().parent.clone() {
-                Some(grandparent) => grandparent,
-                None => {
-                    print!("None");
-                    return; // Exit the function when there is no grandparent
-                }
-            };
+            // check if node has a grandparent
+            if let Some(grandparent) = parent.borrow().parent.clone() {
+                // check if node has uncle
+                let is_left_child = parent.borrow().key == grandparent.borrow().left.as_ref().unwrap().borrow().key;
+
+                // assign the uncle accordingly
+                let uncle = if is_left_child {
+                    grandparent.borrow().right.clone()
+                } else {
+                    grandparent.borrow().left.clone()
+                };
     
-            println!("\n\nGrandparent: {:?}", grandparent.borrow().key);
+                // Now, 'uncle' holds the Option<Tree<T>> for the uncle node
+                // You can further check and use 'uncle' as needed
+    
+                // Example: print the key of the uncle if it exists
+                if let Some(uncle_node) = uncle.as_ref() {
+                    if uncle_node.borrow().color == NodeColor::Red {
+
+
+                        // problem code multiple mutable references
+                        // {
+                        //     let borrowed_parent = Rc::clone(parent);
+                        //     borrowed_parent.borrow_mut().color = match borrowed_parent.borrow().color {
+                        //         NodeColor::Red => NodeColor::Black,
+                        //         NodeColor::Black => NodeColor::Red,
+                        //     };
+                        // }
+    
+                        uncle_node.borrow_mut().color = NodeColor::Black;
+                    }
+                    println!("Uncle key: {:?}", uncle_node.borrow().key);
+                } else {
+                    println!("No uncle (uncle is None)");
+                }
+            }
         }
         // case 0: node is root
         // what to do: Colour node black
@@ -189,7 +217,8 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> {
     fn print_recursive(&self, node: Tree<T>) {
         let node_borrowed = node.borrow_mut();
 
-        println!("{:?}", node_borrowed.key);
+        println!("Key: {:?}, Colour: {:?}", node_borrowed.key, node_borrowed.color);
+      
 
         if let Some(left) = &node_borrowed.left {
             self.print_recursive(left.clone());
