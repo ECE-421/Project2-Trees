@@ -1,62 +1,39 @@
-use std::{cell::RefCell, cmp, rc::Rc};
+use std::cell::RefCell;
+use std::rc::Rc;
 
-type NodePtr<T> = Option<Rc<RefCell<Node<T>>>>;
-struct Node<T> {
-    data: T,
-    height: i32,
-    left: NodePtr<T>,
-    right: NodePtr<T>,
+pub type NodePtr<T: Clone> = Rc<RefCell<Node<T>>>;
+
+pub struct Node<T: Clone> {
+    pub data: T,
+    pub height: i32,
+    pub left: Option<NodePtr<T>>,
+    pub right: Option<NodePtr<T>>,
 }
 
-impl<T: Ord> Node<T> {
-    fn new(data: T) -> Self {
-        Self {data, height: 1, left: None, right: None}
+impl<T: Ord + Clone> Node<T> {
+    pub fn new(data: T) -> NodePtr<T> {
+        Rc::new(RefCell::new(Node {
+            data,
+            height: 1, 
+            left: None,
+            right: None,
+        }))
     }
 
-    fn subtree_height(node: &NodePtr<T>) -> i32 {
-        node.as_ref().map_or(0, |node| node.borrow().height)
+    pub fn update_height(node: &NodePtr<T>) {
+        let node_borrow = node.borrow();
+        let left_height = node_borrow.left.as_ref().map_or(0, |n| n.borrow().height);
+        let right_height = node_borrow.right.as_ref().map_or(0, |n| n.borrow().height);
+        drop(node_borrow);
+        node.borrow_mut().height = 1 + std::cmp::max(left_height, right_height);
     }
 
-    fn update_height(&mut self) {
-        let left_height = Self::subtree_height(&self.left);
-        let right_height = Self::subtree_height(&self.right);
-        self.height = 1 + cmp::max(left_height, right_height);
-    }
-
-    fn balance_factor(&self) -> i32 {
-        let left_height = Self::subtree_height(&self.left);
-        let right_height = Self::subtree_height(&self.right);
+    pub fn balance_factor(node: &NodePtr<T>) -> i32 {
+        let node_borrow = node.borrow();
+        let left_height = node_borrow.left.as_ref().map_or(0, |n| n.borrow().height);
+        let right_height = node_borrow.right.as_ref().map_or(0, |n| n.borrow().height);
         left_height - right_height
     }
-
-    pub fn height(&self) -> i32 {
-        self.height
-    }
-
-
-    fn rotate_right(root: Rc<RefCell<Self>>) -> NodePtr<T> {
-        let new_root = root.borrow_mut().left.take().expect("Left child must exist for right rotation");
-        root.borrow_mut().left = new_root.borrow_mut().right.take();
-        new_root.borrow_mut().right = Some(root.clone());
-
-        root.borrow_mut().update_height();
-        new_root.borrow_mut().update_height();
-
-        Some(new_root)
-    }
-    
-
-    fn rotate_left(root: Rc<RefCell<Self>>) -> NodePtr<T> {
-        let new_root = root.borrow_mut().right.take().expect("Right child must exist for left rotation");
-        root.borrow_mut().right = new_root.borrow_mut().left.take();
-        new_root.borrow_mut().left = Some(root.clone());
-
-        root.borrow_mut().update_height();
-        new_root.borrow_mut().update_height();
-
-        Some(new_root)
-    }
-
 }
 
 
@@ -66,61 +43,61 @@ mod tests {
 
     #[test]
     fn test_new_node() {
-        let node = Node::new(10);
-        assert_eq!(node.data, 10); 
-        assert_eq!(node.height, 1); 
-        assert!(node.left.is_none());
-        assert!(node.right.is_none());
+        let data = 10;
+        let node = Node::new(data);
+        let node_borrow = node.borrow();
+
+        assert_eq!(node_borrow.data, data);
+        assert_eq!(node_borrow.height, 1);
+        assert!(node_borrow.left.is_none());
+        assert!(node_borrow.right.is_none());
     }
 
     #[test]
-    fn test_update_height() {
-        let mut node = Node::new(10);
-        let left_child = Rc::new(RefCell::new(Node::new(5)));
-        let right_child = Rc::new(RefCell::new(Node::new(15)));
+    fn test_update_height_single_child() {
+        let parent = Node::new(10);
+        let child = Node::new(5);
 
-        node.left = Some(left_child.clone());
-        node.right = Some(right_child.clone());
+        // Simulate adding a left child
+        parent.borrow_mut().left = Some(Rc::clone(&child));
 
-        left_child.borrow_mut().height = 2;
-        right_child.borrow_mut().height = 3;
+        Node::update_height(&parent);
 
-        node.update_height();
+        assert_eq!(parent.borrow().height, 2);
+    }
 
-        assert_eq!(node.height, 4);
+    #[test]
+    fn test_update_height_two_children() {
+        let parent = Node::new(10);
+        let left_child = Node::new(5);
+        let right_child = Node::new(15);
+
+        parent.borrow_mut().left = Some(Rc::clone(&left_child));
+        parent.borrow_mut().right = Some(Rc::clone(&right_child));
+
+        right_child.borrow_mut().right = Some(Node::new(20));
+
+        Node::update_height(&right_child);
+        Node::update_height(&parent);
+
+        assert_eq!(parent.borrow().height, 3);
     }
 
     #[test]
     fn test_balance_factor() {
-        let mut node = Node::new(10);
-        let left_child = Rc::new(RefCell::new(Node::new(5)));
-        let right_child = Rc::new(RefCell::new(Node::new(15)));
+        let parent = Node::new(10);
+        let left_child = Node::new(5);
+        let right_child = Node::new(15);
 
-        node.left = Some(left_child.clone());
-        node.right = Some(right_child.clone());
+        parent.borrow_mut().left = Some(Rc::clone(&left_child));
+        parent.borrow_mut().right = Some(Rc::clone(&right_child));
 
-        left_child.borrow_mut().height = 2;
-        right_child.borrow_mut().height = 3;
+        right_child.borrow_mut().right = Some(Node::new(20));
+        Node::update_height(&left_child);
+        Node::update_height(&right_child);
+        Node::update_height(&parent);
 
-        node.update_height();
-
-        let balance_factor = node.balance_factor();
+        let balance_factor = Node::balance_factor(&parent);
         assert_eq!(balance_factor, -1);
-    }
-
-    #[test]
-    fn test_rotate_right() {
-        let root = Rc::new(RefCell::new(Node::new(10)));
-        let left_child = Rc::new(RefCell::new(Node::new(5)));
-        let left_left_child = Rc::new(RefCell::new(Node::new(2)));
-
-        root.borrow_mut().left = Some(left_child.clone());
-        left_child.borrow_mut().left = Some(left_left_child.clone());
-
-        let new_root = Node::rotate_right(root.clone()).unwrap();
-
-        assert_eq!(new_root.borrow().data, 5);
-        assert!(new_root.borrow().right.is_some());
-        assert_eq!(new_root.borrow().right.as_ref().unwrap().borrow().data, 10);
     }
 }
