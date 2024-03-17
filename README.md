@@ -1,5 +1,13 @@
 # ECE421 - Project 2 - Red Black and AVL trees
 
+The project focuses on the implementation of AVL and Red-Black tree data structures, and includes some rudimentary benchmarking of their relative performance.
+
+Completed by:
+
+- Devin Headrick
+- Inioluwa Deniyi
+- Logan Kossedy
+
 ## Usage Instructions
 
 ## Crates Used

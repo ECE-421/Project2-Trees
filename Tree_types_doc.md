@@ -1,12 +1,12 @@
 # Overview of Red Black and AVL trees
 
-Both types are superior to a regular binary search tree.
+Both of these data structures are types of Binary trees, but they are superior to regular binary search trees in a couple ways.
 
-Serach time of a regular binary tree is O(h), which may become O(n) without balancing.
+Serach time of a regular binary tree is O(height), which may become O(n) without balancing.
 
 The height of a red-black and avl tree is always O(log n), because of their self balancing nature.
 
-AVL trees are 'more balanced' than red-black trees, but cause more rotations during insertion and deletion. If your application involves frequent insertion and deletion, than red-black trees should be prefered.
+AVL trees are 'more balanced' than red-black trees, but cause more rotations during insertion and deletion. If your application involves frequent insertion and deletion, than red-black trees should be prefered. 
  
 ## Red Black Tree
 
@@ -31,8 +31,12 @@ Every sub-tree is also an AVL tree.
 Rebalancing occurs when the height of any two child sub trees of a node are greater than 1.
 Rebalancing is more complex than with Red-Black trees.
 
+
 ## References
 
 https://www.geeksforgeeks.org/introduction-to-red-black-tree/
 
 https://www.programiz.com/dsa/red-black-tree
+
+https://www.codesdope.com/course/data-structures-red-black-trees-insertion/
+
