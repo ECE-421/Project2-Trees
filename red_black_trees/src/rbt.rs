@@ -366,6 +366,8 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
     pub fn delete(&mut self, key: T) {
         let found_node = self.find(key);
         let found_node_ref = found_node.clone();
+
+        let found = found_node_ref.as_ref().unwrap().borrow();
         
         let y = match found_node {
             Some(node_ref) => Some(node_ref.clone()),
@@ -376,7 +378,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
 
         };
 
-        let y_orginal_color = y.as_ref().unwrap().borrow().color.clone();
+        let mut y_orginal_color = y.as_ref().unwrap().borrow().color.clone();
         let mut x:RedBlackTree<T>;
 
         if found_node_ref.as_ref().unwrap().borrow().left.is_none() {
@@ -386,8 +388,27 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
             x = found_node_ref.as_ref().unwrap().borrow().left.clone();
             self.transplant(found_node_ref.clone(), x)
         } else {
-            
+            let min = self.find_minimum(&found_node_ref.as_ref().unwrap().borrow().right.clone());
+            y_orginal_color = min.as_ref().unwrap().borrow().color.clone();
+            let min_node = min.as_ref().unwrap().borrow();
+            x = min.as_ref().unwrap().borrow().right.clone();
+
+            if min_node.parent.clone().as_ref().unwrap().borrow().key == found.key {
+                x.as_ref().unwrap().borrow_mut().parent = min.clone();
+            } else {
+                self.transplant(min.clone(), min_node.right.clone());
+                min.as_ref().unwrap().borrow_mut().right = found_node_ref.as_ref().unwrap().borrow().right.clone();
+                min.as_ref().unwrap().borrow().right.clone().as_ref().unwrap().borrow_mut().parent = min.clone();
+            }
+
+            self.transplant(found_node_ref.clone(), min.clone());
+            min.as_ref().unwrap().borrow_mut().left = found.left.clone();
+            min.as_ref().unwrap().borrow().left.clone().as_ref().unwrap().borrow_mut().parent = min.clone();
+            min.as_ref().unwrap().borrow_mut().color = found.color.clone();
+
         }
+
+
     }
 
     fn transplant(&mut self, u: RedBlackTree<T>, v: RedBlackTree<T>) {
@@ -439,12 +460,10 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
       
 
         if let Some(left) = &node_borrowed.left {
-            println!("Is left");
             self.print_recursive(left.clone());
         }
 
         if let Some(right) = &node_borrowed.right {
-            println!("Is Right");
             self.print_recursive(right.clone());
         }
     }
