@@ -44,6 +44,26 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         RedBlackTreeSet { root: None }
     }
 
+    pub fn find(&mut self, key: T) -> RedBlackTree<T>{
+        let root = self.root.clone();
+        self.find_recursion(&root, key)
+    }
+
+    pub fn find_recursion(&mut self, node: &RedBlackTree<T>, key: T) -> RedBlackTree<T>{
+        match node {
+            Some(node) => {
+                if key < node.borrow().key {
+                    self.find_recursion(&node.borrow().left, key)
+                } else if key > node.borrow().key {
+                    self.find_recursion(&node.borrow().right, key)
+                } else {
+                    Some(node.clone())
+                }
+            },
+            None => None,
+        }
+    }
+
     pub fn insert(&mut self, key: T) {
         let new_node = Rc::new(RefCell::new(TreeNode {
             color: NodeColor::Red, // New nodes are always red initially
@@ -94,15 +114,16 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
             return
         } else {
             let mut node_ref = new_node.borrow().clone();
+            let node = new_node.clone();
 
             while new_node.borrow().parent.as_ref().unwrap().borrow().clone().color == NodeColor::Red {
                 // Find the parent node
                 // it is safe to use unwrap here since we already verified the parent has a value
-                let parent = node_ref.parent.clone().unwrap();
+                let mut parent = node_ref.parent.clone().unwrap();
                 
                 //parent is a left child
-                if Some(true) == self.is_left_child(&parent) {
-    
+                if self.is_left_child(&parent).is_some() {
+                    println!("\tThe orginal parent key is: {:?}", parent.borrow().key);
                     //find grand_parent
                     let grandparent = match parent.borrow().parent {
                         Some(ref parent_node) => {
@@ -114,53 +135,73 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
     
                     //find uncle
                     // if uncle exists it must be right child of gp
-                    let uncle = match grandparent {
+                    let uncle_ref = match grandparent {
                         Some(ref grandparent_node) => {
                             grandparent_node.borrow().right.clone()
                         },
                         None => None,
                     };
 
-                    if let Some(ref uncle) = uncle {
-                        // case 1: uncle is red
-                        // we flip colour of all other nodes
-                        if uncle.borrow().color == NodeColor::Red {
-                            //flip uncle colour
-                            let new_uncle_colour = NodeColor::flip_color(uncle.borrow().clone().color);
-                            uncle.borrow_mut().color = new_uncle_colour;
-                            println!("\tThe uncle is: {:?} and new color is: {:?}", uncle.borrow().key, uncle.borrow().color);
-            
-                            // Flip parent color
-                            let new_parent_colour = NodeColor::flip_color(parent.borrow().clone().color);
-                            parent.borrow_mut().color = new_parent_colour;
-                            println!("\tThe parent is: {:?} and new color is: {:?}", parent.borrow().key, parent.borrow().color);
+                    if uncle_ref.is_some() && uncle_ref.as_ref().unwrap().borrow().color == NodeColor::Red{
+                        //flip uncle colour
+                        let uncle = uncle_ref.as_ref().unwrap().clone();
+
+                        let new_uncle_colour = NodeColor::flip_color(uncle.borrow().clone().color);
+                        uncle.borrow_mut().color = new_uncle_colour;
+                        println!("\tThe uncle is: {:?} and new color is: {:?}", uncle.borrow().key, uncle.borrow().color);
         
-                            // Flip grandparent color
-                            if let Some(ref grandparent) = grandparent {
-                                let new_grandparent_colour = NodeColor::flip_color(grandparent.borrow().clone().color);
-                                grandparent.borrow_mut().color = new_grandparent_colour;
-                                println!("\tThe grandparent is: {:?} and new color is: {:?}", grandparent.borrow().key, grandparent.borrow().color);
-                            } else {
-                                println!("\tNo grandparent");
-                            }
-                        
+                        // Flip parent color
+                        let new_parent_colour = NodeColor::flip_color(parent.borrow().clone().color);
+                        parent.borrow_mut().color = new_parent_colour;
+                        println!("\tThe parent is: {:?} and new color is: {:?}", parent.borrow().key, parent.borrow().color);
+    
+                        // Flip grandparent color
+                        if let Some(ref grandparent) = grandparent {
+                            let new_grandparent_colour = NodeColor::flip_color(grandparent.borrow().clone().color);
+                            grandparent.borrow_mut().color = new_grandparent_colour;
+                            println!("\tThe grandparent is: {:?} and new color is: {:?}", grandparent.borrow().key, grandparent.borrow().color);
                         } else {
-                            // new node is a right child
-                            if Some(false) == self.is_left_child(&new_node) {
-                                // TODO figure out if this is needed?
-                                // z = z.parent //marked z.parent as new z
-                                self.rotate_left(parent)
-                            
-                            }
+                            println!("\tNo grandparent");
                         }
                         
                     } else {
-                        println!("\tNo uncle");
-                    }
-                } else { // the parent of new_node is right
-                        //find grand_parent
+                        // new node is a right child
+                        if self.is_left_child(&new_node).is_none() {
+                            let parent_clone = node_ref.parent.clone().unwrap();
+                            self.rotate_left(parent.clone());
+                            parent = parent_clone.borrow().parent.as_ref().unwrap().clone();
+                        }
 
-                        let grandparent = match parent.borrow().parent {
+                        // set parent color to black
+                        parent.borrow_mut().color = NodeColor::Black;
+                        println!("\tThe parent is: {:?} and new color is: {:?}", parent.borrow().key, parent.borrow().color);
+    
+                        // set grandparent color to black
+                        // since we may have reassigned parent we should reget the grandparent
+
+                        let grandparent_clone = match parent.borrow().parent {
+                            Some(ref parent_node) => {
+                                println!("\tThe orginal parent colour is: {:?}", parent_node.borrow().color);
+                                Some(parent_node.clone())
+                            },
+                            None => None,
+                        };
+
+
+
+                        if let Some(ref grandparent) = grandparent_clone {
+                            grandparent.borrow_mut().color = NodeColor::Red;
+                            self.rotate_right(grandparent.clone());
+                            println!("\tThe grandparent is: {:?} and new color is: {:?}", grandparent.borrow().key, grandparent.borrow().color);
+                        } else {
+                            println!("\tNo grandparent");
+                        }
+                        
+                    }
+                        
+                } else {
+                    //find grand_parent
+                    let grandparent = match parent.borrow().parent {
                         Some(ref parent_node) => {
                             println!("\tThe orginal parent colour is: {:?}", parent_node.borrow().color);
                             Some(parent_node.clone())
@@ -169,49 +210,68 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                     };
 
                     //find uncle
-                    // if uncle exists it must be left child of gp
-                    let uncle = match grandparent {
+                    // if uncle exists it must be right child of gp
+                    let uncle_ref = match grandparent {
                         Some(ref grandparent_node) => {
                             grandparent_node.borrow().left.clone()
                         },
                         None => None,
                     };
 
-                    if let Some(ref uncle) = uncle {
-                        // case 1: uncle is red
-                        // we flip colour of all other nodes
-                        if uncle.borrow().color == NodeColor::Red {
-                            //flip uncle colour
-                            let new_uncle_colour = NodeColor::flip_color(uncle.borrow().clone().color);
-                            uncle.borrow_mut().color = new_uncle_colour;
-                            println!("\tThe uncle is: {:?} and new color is: {:?}", uncle.borrow().key, uncle.borrow().color);
-            
-                            // Flip parent color
-                            let new_parent_colour = NodeColor::flip_color(parent.borrow().clone().color);
-                            parent.borrow_mut().color = new_parent_colour;
-                            println!("\tThe parent is: {:?} and new color is: {:?}", parent.borrow().key, parent.borrow().color);
+                    if uncle_ref.is_some() && uncle_ref.as_ref().unwrap().borrow().color == NodeColor::Red{
+                        //flip uncle colour
+                        let uncle = uncle_ref.as_ref().unwrap().clone();
+
+                        let new_uncle_colour = NodeColor::flip_color(uncle.borrow().clone().color);
+                        uncle.borrow_mut().color = new_uncle_colour;
+                        println!("\tThe uncle is: {:?} and new color is: {:?}", uncle.borrow().key, uncle.borrow().color);
         
-                            // Flip grandparent color
-                            if let Some(ref grandparent) = grandparent {
-                                let new_grandparent_colour = NodeColor::flip_color(grandparent.borrow().clone().color);
-                                grandparent.borrow_mut().color = new_grandparent_colour;
-                                println!("\tThe grandparent is: {:?} and new color is: {:?}", grandparent.borrow().key, grandparent.borrow().color);
-                            } else {
-                                println!("\tNo grandparent");
-                            }
-                        
+                        // Flip parent color
+                        let new_parent_colour = NodeColor::flip_color(parent.borrow().clone().color);
+                        parent.borrow_mut().color = new_parent_colour;
+                        println!("\tThe parent is: {:?} and new color is: {:?}", parent.borrow().key, parent.borrow().color);
+
+                        // Flip grandparent color
+                        if let Some(ref grandparent) = grandparent {
+                            let new_grandparent_colour = NodeColor::flip_color(grandparent.borrow().clone().color);
+                            grandparent.borrow_mut().color = new_grandparent_colour;
+                            println!("\tThe grandparent is: {:?} and new color is: {:?}", grandparent.borrow().key, grandparent.borrow().color);
                         } else {
-                            // new node is a left child
-                            if Some(true) == self.is_left_child(&new_node) {
-                                // TODO figure out if this is needed?
-                                // z = z.parent //marked z.parent as new z
-                                self.rotate_right(parent)
-                            
-                            }
+                            println!("\tNo grandparent");
                         }
                         
                     } else {
-                        println!("\tNo uncle");
+                        // new node is a right child
+                        if self.is_left_child(&new_node).is_some() {
+                            let parent_clone = node_ref.parent.clone().unwrap();
+                            self.rotate_right(parent.clone());
+                            parent = parent_clone.borrow().parent.as_ref().unwrap().clone();
+                        }
+
+                        // set parent color to black
+                        parent.borrow_mut().color = NodeColor::Black;
+                        println!("\tThe parent is: {:?} and new color is: {:?}", parent.borrow().key, parent.borrow().color);
+
+                       // since we may have reassigned parent we should reget the grandparent
+
+                       let grandparent_clone = match parent.borrow().parent {
+                            Some(ref parent_node) => {
+                                println!("\tThe orginal parent colour is: {:?}", parent_node.borrow().color);
+                                Some(parent_node.clone())
+                            },
+                            None => None,
+                        };
+
+
+
+                        if let Some(ref grandparent) = grandparent_clone {
+                            grandparent.borrow_mut().color = NodeColor::Red;
+                            self.rotate_left(grandparent.clone());
+                            println!("\tThe grandparent is: {:?} and new color is: {:?}", grandparent.borrow().key, grandparent.borrow().color);
+                        } else {
+                            println!("\tNo grandparent");
+                        }
+                        
                     }
                 }
     
@@ -226,10 +286,10 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
     fn is_left_child(&self, node: &Tree<T>) -> Option<bool> {
         if let Some(ref parent) = node.borrow().parent.clone() {
             if let Some(ref left_child) = parent.borrow().left.clone() {
-                if Rc::ptr_eq(left_child, node) {
+                if (left_child.borrow().key == node.borrow().key) {
                     Some(true)
                 } else {
-                    Some(false)
+                    None
                 }
             } else {
                 None
@@ -239,7 +299,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         }
     }
 
-    pub fn rotate_left(&mut self, x: Tree<T>) {
+    fn rotate_left(&mut self, x: Tree<T>) {
         // following popular pseudo code found online and converting to rust
         let mut x_borrowed = x.borrow_mut();
 
@@ -276,7 +336,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         x_borrowed.parent = Some(y.clone());
     }
 
-    pub fn rotate_right(&mut self, x: Tree<T>) {
+   fn rotate_right(&mut self, x: Tree<T>) {
         // following popular pseudo code found online and converting to rust
         let mut x_borrowed = x.borrow_mut();
 
@@ -303,10 +363,69 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         x_borrowed.parent = Some(y.clone());
     }
 
-   
+    pub fn delete(&mut self, key: T) {
+        let found_node = self.find(key);
+        let found_node_ref = found_node.clone();
+        
+        let y = match found_node {
+            Some(node_ref) => Some(node_ref.clone()),
+            None => { 
+                print!("Key not found");
+                return;
+            }
+
+        };
+
+        let y_orginal_color = y.as_ref().unwrap().borrow().color.clone();
+        let mut x:RedBlackTree<T>;
+
+        if found_node_ref.as_ref().unwrap().borrow().left.is_none() {
+            x = found_node_ref.as_ref().unwrap().borrow().right.clone();
+            self.transplant(found_node_ref.clone(), x)
+        } else if  found_node_ref.as_ref().unwrap().borrow().right.is_none() {
+            x = found_node_ref.as_ref().unwrap().borrow().left.clone();
+            self.transplant(found_node_ref.clone(), x)
+        } else {
+            
+        }
+    }
+
+    fn transplant(&mut self, u: RedBlackTree<T>, v: RedBlackTree<T>) {
+        let u_node = u.as_ref().unwrap().clone();
+        let u_parent = u.as_ref().unwrap().borrow().parent.clone();
+        //check if u is root
+        if u_parent.is_none(){
+            self.root = v;
+        } else if Some(true) == self.is_left_child(&u_node.clone()) {
+            u_parent.as_ref().unwrap().borrow_mut().left = v.clone();
+        } else {
+            u_parent.as_ref().unwrap().borrow_mut().right = v.clone();
+        }
+    }
+
+    pub fn find_minimum(&mut self, tree: &RedBlackTree<T>) -> RedBlackTree<T>{
+        let root = self.root.clone();
+        self.find_minimum_recursion(&tree.clone())
+    }
+
+    pub fn find_minimum_recursion(&mut self, tree: &RedBlackTree<T>) -> RedBlackTree<T>{
+        match tree {
+            Some(node) => {
+                if node.borrow().left.is_none() {
+                    println!("minimum on right is: {:?}", node.borrow().key);
+                    Some(node.clone())
+                } else {
+                    self.find_minimum_recursion(&node.borrow().left.clone())
+                }
+            },
+            None => tree.clone(),
+        }
+    }
+
 
     pub fn print_tree(&self) {
         if let Some(root) = &self.root {
+            println!("Is root");
             self.print_recursive(root.clone());
         } else {
             println!("Empty tree");
@@ -320,10 +439,12 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
       
 
         if let Some(left) = &node_borrowed.left {
+            println!("Is left");
             self.print_recursive(left.clone());
         }
 
         if let Some(right) = &node_borrowed.right {
+            println!("Is Right");
             self.print_recursive(right.clone());
         }
     }
