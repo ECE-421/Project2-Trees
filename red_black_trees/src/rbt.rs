@@ -592,4 +592,47 @@ where
             None => 0,
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.root.is_none()
+    }
+
+    pub fn get_tree_height(&self) -> i32 {
+        let root = self.root.clone();
+        self.get_tree_height_recursion(&root)
+    }
+
+    pub fn get_tree_height_recursion(&self, node: &RedBlackTree<T>) -> i32 {
+        match node {
+            Some(node) => {
+                let left_height = self.get_tree_height_recursion(&node.borrow().left);
+                let right_height = self.get_tree_height_recursion(&node.borrow().right);
+
+                if left_height > right_height {
+                    left_height + 1
+                } else {
+                    right_height + 1
+                }
+            }
+            None => 0,
+        }
+    }
+
+    pub fn print_in_order_traversal(&self){
+        let root = self.root.clone();
+        self.print_in_order_traversal_recursion(&root);
+    }
+
+    pub fn print_in_order_traversal_recursion(&self, node: &RedBlackTree<T>){
+        match node {
+            Some(node) => {
+                self.print_in_order_traversal_recursion(&node.borrow().left);
+                println!("Key: {:?}", node.borrow().key);
+                self.print_in_order_traversal_recursion(&node.borrow().right);
+            }
+            None => {}
+        }
+    }
+
+
 }
