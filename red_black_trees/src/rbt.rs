@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::iter::Successors;
 use std::rc::Rc;
 use std::{clone, fmt};
 use std::fmt::Debug;
@@ -242,7 +243,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                         
                     } else {
                         // new node is a right child
-                        if self.is_left_child(&new_node).is_some() {
+                        if self.is_left_child(&new_node).is_none() {
                             let parent_clone = node_ref.parent.clone().unwrap();
                             self.rotate_right(parent.clone());
                             parent = parent_clone.borrow().parent.as_ref().unwrap().clone();
@@ -261,7 +262,6 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                             },
                             None => None,
                         };
-
 
 
                         if let Some(ref grandparent) = grandparent_clone {
@@ -365,11 +365,13 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
 
     pub fn delete(&mut self, key: T) {
         let found_node = self.find(key);
-        let found_node_ref = found_node.clone();
+        let found_node_ref = found_node;
 
         let found = found_node_ref.as_ref().unwrap().borrow();
+        let v = found_node_ref.as_ref().unwrap().borrow().left.clone();
+        let w = found_node_ref.as_ref().unwrap().borrow().right.clone();
         
-        let y = match found_node {
+        let y = match found_node_ref.clone() {
             Some(node_ref) => Some(node_ref.clone()),
             None => { 
                 print!("Key not found");
@@ -383,40 +385,65 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
 
         if found_node_ref.as_ref().unwrap().borrow().left.is_none() {
             x = found_node_ref.as_ref().unwrap().borrow().right.clone();
-            self.transplant(found_node_ref.clone(), x)
+            self.transplant(&found_node_ref.clone(), &x.clone())
         } else if  found_node_ref.as_ref().unwrap().borrow().right.is_none() {
             x = found_node_ref.as_ref().unwrap().borrow().left.clone();
-            self.transplant(found_node_ref.clone(), x)
+            self.transplant(&found_node_ref.clone(), &x.clone())
+        
+        // node has 2 children
         } else {
-            let min = self.find_minimum(&found_node_ref.as_ref().unwrap().borrow().right.clone());
-            y_orginal_color = min.as_ref().unwrap().borrow().color.clone();
-            let min_node = min.as_ref().unwrap().borrow();
-            x = min.as_ref().unwrap().borrow().right.clone();
+        
+            let y = self.find_minimum(&w.clone());
 
-            if min_node.parent.clone().as_ref().unwrap().borrow().key == found.key {
-                x.as_ref().unwrap().borrow_mut().parent = min.clone();
+            y_orginal_color = y.as_ref().unwrap().borrow().color.clone();
+            x = y.as_ref().unwrap().borrow().clone().right;
+            if y.as_ref().unwrap().borrow().clone().parent.as_ref().unwrap().borrow().clone().key == found_node_ref.as_ref().unwrap().borrow().clone().key {
+                if x.is_some() {
+                    x.as_ref().unwrap().borrow_mut().parent = y.clone();
+                }
             } else {
-                self.transplant(min.clone(), min_node.right.clone());
-                min.as_ref().unwrap().borrow_mut().right = found_node_ref.as_ref().unwrap().borrow().right.clone();
-                min.as_ref().unwrap().borrow().right.clone().as_ref().unwrap().borrow_mut().parent = min.clone();
+                self.transplant(&y.clone(), &y.as_ref().unwrap().borrow().right.clone());
+                y.as_ref().unwrap().borrow_mut().right = found_node_ref.as_ref().unwrap().borrow().right.clone();
+                y.as_ref().unwrap().borrow().right.as_ref().unwrap().borrow_mut().parent = y.clone();
             }
-
-            self.transplant(found_node_ref.clone(), min.clone());
-            min.as_ref().unwrap().borrow_mut().left = found.left.clone();
-            min.as_ref().unwrap().borrow().left.clone().as_ref().unwrap().borrow_mut().parent = min.clone();
-            min.as_ref().unwrap().borrow_mut().color = found.color.clone();
-
+            self.transplant(&found_node_ref.clone(), &y.clone());
+            y.as_ref().unwrap().borrow_mut().left = v.clone();
+            v.as_ref().unwrap().borrow_mut().parent = y.clone();
+            y.as_ref().unwrap().borrow_mut().color = found_node_ref.as_ref().unwrap().borrow().color.clone();
         }
-
-
+        if y_orginal_color == NodeColor::Black {
+            self.fix_delete(x.clone());
+        }
     }
 
-    fn transplant(&mut self, u: RedBlackTree<T>, v: RedBlackTree<T>) {
+    fn fix_delete(&mut self, x: RedBlackTree<T>) {
+        // w = sibling of x
+        while  x.as_ref().unwrap().borrow().parent.is_some() && x.as_ref().unwrap().borrow().color == NodeColor::Black {
+            // x is the left child of parent
+            let x_parent = x.as_ref().unwrap().borrow().parent.clone();
+            if Some(true) == self.is_left_child( x.as_ref().unwrap()) {
+                // if x has a sibling (w)
+                if x_parent.as_ref().unwrap().borrow().right.is_some() {
+                    let w = x_parent.as_ref().unwrap().borrow().right.clone();
+
+                    //case 1 sibling is red
+                    if w.as_ref().unwrap().borrow().color == NodeColor::Red {
+                        w.as_ref().unwrap().borrow_mut().color = NodeColor::Black
+                    }
+
+
+                }
+            }
+
+        }
+    }
+
+    fn transplant(&mut self, u: &RedBlackTree<T>, v: &RedBlackTree<T>) {
         let u_node = u.as_ref().unwrap().clone();
         let u_parent = u.as_ref().unwrap().borrow().parent.clone();
         //check if u is root
         if u_parent.is_none(){
-            self.root = v;
+            self.root = v.clone();
         } else if Some(true) == self.is_left_child(&u_node.clone()) {
             u_parent.as_ref().unwrap().borrow_mut().left = v.clone();
         } else {
