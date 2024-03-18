@@ -4,6 +4,8 @@ use std::rc::Rc;
 use std::{clone, fmt};
 use std::fmt::Debug;
 use std::fmt::Display;
+use std::rc::Rc;
+use std::{clone, fmt};
 
 use crate::main;
 
@@ -36,21 +38,24 @@ pub struct TreeNode<T> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct RedBlackTreeSet<T: Ord+Display+Debug+Copy> {
+pub struct RedBlackTreeSet<T: Ord + Display + Debug + Copy> {
     pub root: RedBlackTree<T>,
 }
 
-impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Copy{
+impl<T: Ord + fmt::Debug> RedBlackTreeSet<T>
+where
+    T: Ord + Display + Debug + Clone + Copy,
+{
     pub fn new() -> Self {
         RedBlackTreeSet { root: None }
     }
 
-    pub fn find(&mut self, key: T) -> RedBlackTree<T>{
+    pub fn find(&mut self, key: T) -> RedBlackTree<T> {
         let root = self.root.clone();
         self.find_recursion(&root, key)
     }
 
-    pub fn find_recursion(&mut self, node: &RedBlackTree<T>, key: T) -> RedBlackTree<T>{
+    pub fn find_recursion(&mut self, node: &RedBlackTree<T>, key: T) -> RedBlackTree<T> {
         match node {
             Some(node) => {
                 if key < node.borrow().key {
@@ -60,7 +65,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                 } else {
                     Some(node.clone())
                 }
-            },
+            }
             None => None,
         }
     }
@@ -102,7 +107,6 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                 new_node.borrow_mut().parent = Some(node.clone());
             }
         }
-
     }
 
     fn fix(&mut self, new_node: Tree<T>) {
@@ -286,10 +290,8 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         }
 
         self.root.as_ref().unwrap().borrow_mut().color = NodeColor::Black;
-
     }
-    
-    
+
     fn is_left_child(&self, node: &Tree<T>) -> Option<bool> {
         if let Some(ref parent) = node.borrow().parent.clone() {
             if let Some(ref left_child) = parent.borrow().left.clone() {
@@ -369,11 +371,10 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         
         let y = match found_node_ref.clone() {
             Some(node_ref) => Some(node_ref.clone()),
-            None => { 
+            None => {
                 print!("Key not found");
                 return;
             }
-
         };
 
         let mut y_orginal_color = y.as_ref().unwrap().borrow().color.clone();
@@ -524,12 +525,12 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         } 
     }
 
-    pub fn find_minimum(&mut self, tree: &RedBlackTree<T>) -> RedBlackTree<T>{
+    pub fn find_minimum(&mut self, tree: &RedBlackTree<T>) -> RedBlackTree<T> {
         let root = self.root.clone();
         self.find_minimum_recursion(&tree.clone())
     }
 
-    pub fn find_minimum_recursion(&mut self, tree: &RedBlackTree<T>) -> RedBlackTree<T>{
+    pub fn find_minimum_recursion(&mut self, tree: &RedBlackTree<T>) -> RedBlackTree<T> {
         match tree {
             Some(node) => {
                 if node.borrow().left.is_none() {
@@ -538,7 +539,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                 } else {
                     self.find_minimum_recursion(&node.borrow().left.clone())
                 }
-            },
+            }
             None => tree.clone(),
         }
     }
@@ -573,24 +574,22 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         }
     }
 
-    pub fn  leaves(&self) -> i32 {
+    pub fn leaves(&self) -> i32 {
         let root = self.root.clone();
         self.leaves_recursion(&root)
     }
 
-    pub fn leaves_recursion(&self, node: &RedBlackTree<T>)  -> i32{
+    pub fn leaves_recursion(&self, node: &RedBlackTree<T>) -> i32 {
         match node {
             Some(node) => {
                 if node.borrow().left.is_none() && node.borrow().right.is_none() {
                     1
                 } else {
-                    // &node.borrow().left.leaves_recursion(node.clone()) + &node.borrow().right.leaves_recursion(node.clone())
-                    self.leaves_recursion( &node.borrow().left) + self.leaves_recursion(&node.borrow().right)
+                    self.leaves_recursion(&node.borrow().left)
+                        + self.leaves_recursion(&node.borrow().right)
                 }
-            },
+            }
             None => 0,
         }
     }
-
 }
-
