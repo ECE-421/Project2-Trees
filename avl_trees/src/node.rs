@@ -1,16 +1,19 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::fmt::Debug;
+
 
 pub type NodePtr<T: Clone> = Rc<RefCell<Node<T>>>;
 
-pub struct Node<T: Clone> {
+#[derive(Debug)] 
+pub struct Node<T: Clone + Debug> {
     pub data: T,
     pub height: i32,
     pub left: Option<NodePtr<T>>,
     pub right: Option<NodePtr<T>>,
 }
 
-impl<T: Ord + Clone> Node<T> {
+impl<T: Ord + Clone + Debug> Node<T> {
     pub fn new(data: T) -> NodePtr<T> {
         Rc::new(RefCell::new(Node {
             data,

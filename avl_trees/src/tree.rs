@@ -1,11 +1,13 @@
-use crate::node::{Node, NodePtr};
+use std::fmt::Debug;
 
-pub enum Tree<T: Clone + Ord> {
+use crate::node::{Node, NodePtr};
+#[derive(Debug)] 
+pub enum Tree<T: Clone + Ord + Debug> {
     Empty,
     Root(NodePtr<T>),
 }
 
-impl<T: Clone + Ord> Tree<T> {
+impl<T: Clone + Ord + Debug> Tree<T> {
     pub fn new() -> Self {
         Tree::Empty
     }
@@ -26,13 +28,15 @@ impl<T: Clone + Ord> Tree<T> {
         let mut node_borrow = node.borrow_mut();
         if data < node_borrow.data {
             if let Some(ref left) = node_borrow.left {
-                Self::insert_rec(left, data);
+                let new_left = Self::insert_rec(left, data);
+                node_borrow.left = Some(new_left);            
             } else {
                 node_borrow.left = Some(Node::new(data));
             }
         } else if data > node_borrow.data {
             if let Some(ref right) = node_borrow.right {
-                Self::insert_rec(right, data);
+                let new_right = Self::insert_rec(right, data);
+                node_borrow.right = Some(new_right);
             } else {
                 node_borrow.right = Some(Node::new(data));
             }
@@ -144,8 +148,6 @@ impl<T: Clone + Ord> Tree<T> {
         }
         current
     }
-    
-
 }
 
 
