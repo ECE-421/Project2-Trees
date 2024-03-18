@@ -573,5 +573,24 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         }
     }
 
+    pub fn  leaves(&self) -> i32 {
+        let root = self.root.clone();
+        self.leaves_recursion(&root)
+    }
+
+    pub fn leaves_recursion(&self, node: &RedBlackTree<T>)  -> i32{
+        match node {
+            Some(node) => {
+                if node.borrow().left.is_none() && node.borrow().right.is_none() {
+                    1
+                } else {
+                    // &node.borrow().left.leaves_recursion(node.clone()) + &node.borrow().right.leaves_recursion(node.clone())
+                    self.leaves_recursion( &node.borrow().left) + self.leaves_recursion(&node.borrow().right)
+                }
+            },
+            None => 0,
+        }
+    }
+
 }
 

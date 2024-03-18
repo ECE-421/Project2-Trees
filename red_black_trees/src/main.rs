@@ -10,10 +10,13 @@ fn main() {
     rb_tree_fix.insert(8);
     rb_tree_fix.insert(6);
     rb_tree_fix.insert(9);
-    rb_tree_fix.insert(4);
-    rb_tree_fix.insert(13);
+    // rb_tree_fix.insert(4);
+    // rb_tree_fix.insert(13);
+    // rb_tree_fix.insert(15);
 
     rb_tree_fix.print_tree();
+
+    println!("Num leaves: {:?}", rb_tree_fix.leaves());
 }
 
 mod rbt;
