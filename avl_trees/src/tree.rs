@@ -206,6 +206,32 @@ impl<T: Clone + Ord + Debug> Tree<T> {
         }
     }
 
+    pub fn print_tree(&self, depth: usize, is_right: bool) {
+        match *self {
+            Tree::Empty => (),
+            Tree::Root(ref root) => {
+                for _ in 0..depth {
+                    print!("    ");
+                }
+                if(depth > 0){
+                    //TODO print the spaces for the number of characters of the parent node -1, to even the print 
+                    if is_right {
+                        print!("└─R─");
+                    } else {
+                        print!("├─L─");
+                    }
+                }
+                println!("{:?}", root.borrow().data);
+                if let Some(left) = &root.borrow().left {
+                    Tree::Root(left.clone()).print_tree(depth+1, false);
+                }
+                if let Some(right) = &root.borrow().right {
+                    Tree::Root(right.clone()).print_tree(depth+1, true);
+                }
+            }
+        }
+    }
+
 
 }
 
@@ -360,5 +386,17 @@ mod tests {
         tree.insert(4);
         tree.insert(16);
         tree.print_in_order_traversal();
+    }
+
+    #[test]
+    fn test_print_tree(){
+        let mut tree = Tree::new();
+        tree.insert(50);
+        tree.insert(40);
+        tree.insert(30);
+        tree.insert(70);
+        tree.insert(80);
+        tree.insert(60);
+        tree.print_tree(0, true);
     }
 }
