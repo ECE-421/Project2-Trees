@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::fmt::Debug;
 
-
 pub type NodePtr<T: Clone> = Rc<RefCell<Node<T>>>;
 
 #[derive(Debug)] 

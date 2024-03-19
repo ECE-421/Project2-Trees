@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use crate::node::{Node, NodePtr};
-#[derive(Debug)]
-pub enum Tree<T: Clone + Ord> {
+#[derive(Debug)] 
+pub enum Tree<T: Clone + Ord + Debug> {
     Empty,
     Root(NodePtr<T>),
 }
@@ -16,15 +16,15 @@ impl<T: Clone + Ord + Debug> Tree<T> {
         match *self {
             Tree::Empty => {
                 *self = Tree::Root(Node::new(data));
-            }
+            },
             Tree::Root(ref root) => {
                 let new_root = Self::insert_rec(root, data);
-                *self = Tree::Root(new_root);
-            }
+                *self = Tree::Root(new_root);            
+            },
         }
     }
 
-    fn insert_rec(node: &NodePtr<T>, data: T) -> NodePtr<T> {
+    fn insert_rec(node: &NodePtr<T>, data: T) -> NodePtr<T>  {
         let mut node_borrow = node.borrow_mut();
         if data < node_borrow.data {
             if let Some(ref left) = node_borrow.left {
