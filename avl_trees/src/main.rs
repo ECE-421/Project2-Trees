@@ -1,9 +1,8 @@
-mod node;
-mod tree;
+use avl_trees::tree::Tree;
+
 
 fn main() {
-    // Create a new tree of integers
-    let mut tree: tree::Tree<i32> = tree::Tree::new();
+    let mut tree: Tree<i32> = Tree::new();
 
     // Insert elements into the tree
     tree.insert(2);
