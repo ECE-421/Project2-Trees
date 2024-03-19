@@ -12,6 +12,9 @@ fn main() {
     tree.insert(17);
 
     tree.delete(2);
+    tree.search(17);
+    tree.search(3);
+    tree.search(2);
     
     // tree.insert(1);
     // tree.insert(3);

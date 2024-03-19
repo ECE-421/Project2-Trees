@@ -97,6 +97,30 @@ impl<T: Clone + Ord + Debug> Tree<T> {
         node_left
     }
 
+    pub fn search(&mut self, data: T) {
+        match *self {
+            Tree::Empty => {println!("data not found in tree. the tree is empty.")},
+            Tree::Root(ref root) => {
+                Self::search_rec(&root, &data);
+            },
+        }
+    }
+
+    fn search_rec(node: &NodePtr<T>, data: &T) {
+        let node_borrow = node.borrow_mut();
+        if data < &node_borrow.data {
+            if let Some(ref left) = node_borrow.left {
+                Self::search_rec(left, data);
+            }
+        }
+        else if data > &node_borrow.data {
+            if let Some(ref right) = node_borrow.right {
+                Self::search_rec(right, data);
+            }
+        }
+        drop(node_borrow);
+    }
+
     pub fn delete(&mut self, data: T) {
         *self = match *self {
             Tree::Empty => Tree::Empty,

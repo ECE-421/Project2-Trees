@@ -20,7 +20,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         c.bench_function(&format!("search_{}", size), |b| {
             b.iter(|| {
                 for &value in &values[..(size/10).try_into().unwrap()] {
-                    tree.delete(black_box(value));
+                    tree.search(black_box(value));
                 }
             });
         });
