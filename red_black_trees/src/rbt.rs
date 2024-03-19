@@ -58,6 +58,9 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                 } else if key > node.borrow().key {
                     self.find_recursion(&node.borrow().right, key)
                 } else {
+                    
+                    let p = node.clone().borrow().parent.as_ref().unwrap().borrow().key.clone();
+                    println!("Found, the parent was {:?}", p);
                     Some(node.clone())
                 }
             },
@@ -358,59 +361,51 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
     
 
     pub fn delete(&mut self, key: T) {
-        //follow pseudo code at https://www.codesdope.com/course/data-structures-red-black-trees-deletion/
-        let mut x: RedBlackTree<T>;
+        let mut x: RedBlackTree<T> = None;
         let found_node = self.find(key);
-        let found_node_ref = found_node;
-
-        let found = found_node_ref.as_ref().unwrap().borrow();
+        let found_node_ref = found_node.clone();
+    
+        // let found = found_node_ref.as_ref().unwrap().borrow();
         let z_left = found_node_ref.as_ref().unwrap().borrow().left.clone();
         let z_right = found_node_ref.as_ref().unwrap().borrow().right.clone();
-        
-        let y = match found_node_ref.clone() {
-            Some(node_ref) => Some(node_ref.clone()),
-            None => { 
-                print!("Key not found");
-                return;
-            }
-
-        };
-
-        let mut y_orginal_color = y.as_ref().unwrap().borrow().color.clone();
-
+    
+        let mut y = found_node_ref.clone();
+        let mut y_original_color = y.as_ref().unwrap().borrow().color.clone();
+    
         if z_left.is_none() {
-            x = z_right;
-            self.transplant(&found_node_ref.clone(), &x.clone())
-        } else if  z_right.is_none() {
+            x = z_right.clone();
+            self.transplant(&found_node_ref.clone(), &x.clone());
+        } else if z_right.is_none() {
             x = z_left.clone();
-            self.transplant(&found_node_ref.clone(), &x.clone())
-        
-
-        } else { // node has 2 children
-            let y = self.find_minimum(&z_right.clone());
-            y_orginal_color = y.as_ref().unwrap().borrow().color.clone();
-
-            //x = y.right
-            x = y.as_ref().unwrap().borrow().clone().right;
-            
-            if y.as_ref().unwrap().borrow().clone().parent.as_ref().unwrap().borrow().clone().key == found_node_ref.as_ref().unwrap().borrow().clone().key {
-                if x.is_some() {
-                    x.as_ref().unwrap().borrow_mut().parent = y.clone();
+            self.transplant(&found_node_ref.clone(), &x.clone());
+        } else {
+            if let Some((minimum_node, parent)) = self.find_minimum(&found_node_ref.clone().as_ref().unwrap().borrow().right.clone()) {
+                y_original_color = minimum_node.as_ref().unwrap().borrow().color.clone();
+                x = minimum_node.as_ref().unwrap().borrow().right.clone();
+                
+                
+                if parent == found_node_ref {
+                    if x.is_some() {
+                        x.as_ref().unwrap().borrow_mut().parent = y.clone();
+                    }
+                } else {
+                    self.transplant(&minimum_node.clone(), &minimum_node.as_ref().unwrap().borrow().right.clone());
+                    minimum_node.as_ref().unwrap().borrow_mut().right = z_right.clone();
+                    minimum_node.as_ref().unwrap().borrow_mut().right.as_ref().unwrap().borrow_mut().parent = y.clone();
                 }
-            } else {
-                self.transplant(&y.clone(), &y.as_ref().unwrap().borrow().right.clone());
-                y.as_ref().unwrap().borrow_mut().right = z_right;
-                y.as_ref().unwrap().borrow().right.as_ref().unwrap().borrow_mut().parent = y.clone();
+                self.transplant(&found_node_ref.clone(), &minimum_node.clone());
+                minimum_node.as_ref().unwrap().borrow_mut().left = z_left.clone();
+                minimum_node.as_ref().unwrap().borrow_mut().left.as_ref().unwrap().borrow_mut().parent = y.clone();
+                minimum_node.as_ref().unwrap().borrow_mut().color = found_node_ref.as_ref().unwrap().borrow().color.clone();
             }
-            self.transplant(&found_node_ref.clone(), &y.clone());
-            y.as_ref().unwrap().borrow_mut().left = z_left.clone();
-            y.as_ref().unwrap().borrow_mut().parent = y.clone();
-            y.as_ref().unwrap().borrow_mut().color = found_node_ref.as_ref().unwrap().borrow().color.clone();
+        
         }
-        // if y_orginal_color == NodeColor::Black {
-        //     self.fix_delete(x.as_ref().unwrap().clone());
-        // }
+    
+        if y_original_color == NodeColor::Black && x.is_some() {
+            self.fix_delete(x.as_ref().unwrap().clone());
+        }
     }
+    
 
     fn fix_delete(&mut self, x: Tree<T>) {
         let mut x_ref = x.borrow().clone();
@@ -524,24 +519,25 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         } 
     }
 
-    pub fn find_minimum(&mut self, tree: &RedBlackTree<T>) -> RedBlackTree<T>{
+    pub fn find_minimum(&mut self, tree: &RedBlackTree<T>) -> Option<(RedBlackTree<T>, RedBlackTree<T>)> {
         let root = self.root.clone();
-        self.find_minimum_recursion(&tree.clone())
+        self.find_minimum_recursion(tree.clone(), None)
     }
-
-    pub fn find_minimum_recursion(&mut self, tree: &RedBlackTree<T>) -> RedBlackTree<T>{
+    
+    pub fn find_minimum_recursion(&mut self, tree: RedBlackTree<T>, parent: RedBlackTree<T>) -> Option<(RedBlackTree<T>, RedBlackTree<T>)> {
         match tree {
             Some(node) => {
                 if node.borrow().left.is_none() {
-                    println!("minimum on right is: {:?}", node.borrow().key);
-                    Some(node.clone())
+                    println!("Minimum on right is: {:?}", node.borrow().key);
+                    Some((Some(node.clone()), parent))
                 } else {
-                    self.find_minimum_recursion(&node.borrow().left.clone())
+                    self.find_minimum_recursion(node.borrow().left.clone(), Some(node.clone()))
                 }
             },
-            None => tree.clone(),
+            None => None,
         }
     }
+    
 
     pub fn print_tree(&self) {
         if let Some(root) = &self.root {
