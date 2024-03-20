@@ -232,8 +232,28 @@ impl<T: Clone + Ord + Debug> Tree<T> {
         }
     }
 
-
+    pub fn get_height(&self, count: usize) -> usize {
+        match *self {
+            Tree::Empty => 0,
+            Tree::Root(ref root ) => {
+                let mut left_height = 0;
+                let mut right_height = 0;
+                if let Some(left) = &root.borrow().left {
+                    left_height += Tree::Root(left.clone()).get_height(count + 1);
+                }
+                if let Some(right) = &root.borrow().right {
+                    right_height += Tree::Root(right.clone()).get_height(count +1);
+                }
+                std::cmp::max(left_height, right_height) + 1
+            }
+        }
+    }
 }
+
+
+//HOW IS root.clone() DIFFERENT THAN root.borrow().left().clone().unwrap()? 
+    //root.clone() ->  cloning an RC returns the value wrapped in the RC. 
+    //root.borrow() -> immutably borrows the value in the RefCell 
 
 #[cfg(test)]
 mod tests {
@@ -398,5 +418,19 @@ mod tests {
         tree.insert(80);
         tree.insert(60);
         tree.print_tree(0, true);
+    }
+
+    #[test]
+    fn test_get_height(){
+        let mut tree: Tree<i32> = Tree::new();
+        assert_eq!(tree.get_height(0), 0 );
+        tree.insert(50);
+        assert_eq!(tree.get_height(0), 1 );
+        tree.insert(40);
+        assert_eq!(tree.get_height(0), 2 );
+        tree.insert(30);
+        tree.insert(70);
+        tree.insert(80);
+        assert_eq!(tree.get_height(0), 3 );
     }
 }
