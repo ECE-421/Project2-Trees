@@ -109,7 +109,8 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                     self.find_recursion(&node.borrow().right, key)
                 } else {
                     let tnode = node.borrow().clone();
-                    println!("Node:\n\n : {}", tnode);
+                    // println!("Node:\n\n : {}", tnode);
+                    // println!("Found {}\n", node.borrow().key);
                     Some(node.clone())
                 }
             },
@@ -160,7 +161,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         // used the pseudo code to implement the rust algorith for fixing an insert
 
         let is_root = new_node.borrow().parent.is_none();
-        println!("Inserted Node: {:?}", new_node.borrow().key);
+        // println!("Inserted Node: {:?}", new_node.borrow().key);
 
 
         let mut node_ref = new_node.clone();
@@ -178,9 +179,9 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
             // Find the parent node
             // it is safe to use unwrap here since we already verified the parent has a value
             //parent is a left child
-            println!("parent key after setting color to red: {:?}", node_ref.borrow().parent.clone().unwrap().upgrade().unwrap().borrow().key);
+        
             let parent = node_ref.borrow().parent.clone().unwrap().upgrade().unwrap().clone();
-            println!("parent key after setting color to red: {:?}", parent.borrow().key);
+            
             if Some(true) == self.is_left_child(&parent) {
 
                  //find grand_parent
@@ -205,7 +206,6 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                     let new_uncle_colour = NodeColor::flip_color(uncle.borrow().clone().color);
                     {
                         uncle.borrow_mut().color = new_uncle_colour;
-                        println!("uncle key after setting color to red: {:?}", uncle.borrow().key);
                     }
                 
     
@@ -218,7 +218,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                         let new_grandparent_colour = NodeColor::flip_color(grandparent.borrow().clone().color);
                         {
                             grandparent.borrow_mut().color = new_grandparent_colour;
-                            println!("Grandparent key after setting color to red: {:?}", grandparent.borrow().key);
+
                             node_ref = grandparent.clone();
                         }
                         
@@ -231,7 +231,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                         let parent_weak = new_node.borrow().parent.clone().unwrap();
                         let parent_upgrade = parent_weak.upgrade().unwrap();
                         node_ref = parent_upgrade.clone();
-                        println!("Parent key after setting color to black: {:?}", parent_upgrade.borrow().key);
+
                         self.rotate_left(parent_upgrade);
                     }
 
@@ -239,7 +239,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                     let parent_upgrade = parent_weak.upgrade().unwrap();
 
                     parent_upgrade.borrow_mut().color = NodeColor::Black;
-                    println!("Parent key after setting color to black: {:?}", parent_upgrade.borrow().key);
+                  
 
                     // Case 3
                     let grandparent = match parent_upgrade.borrow().parent {
@@ -249,7 +249,6 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
 
                     if let Some(ref grandparent) = grandparent {
                         grandparent.borrow_mut().color = NodeColor::Red;
-                        println!("Grandparent key after setting color to red: {:?}", grandparent.borrow().key);
                         self.rotate_right(grandparent.clone());
                         // node_ref = grandparent.clone();
                     }
@@ -280,7 +279,6 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                     let new_uncle_colour = NodeColor::flip_color(uncle.borrow().clone().color);
                     {
                         uncle.borrow_mut().color = new_uncle_colour;
-                        println!("uncle key after setting color to red: {:?}", uncle.borrow().key);
                     }
                 
     
@@ -293,7 +291,6 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                         let new_grandparent_colour = NodeColor::flip_color(grandparent.borrow().clone().color);
                         {
                             grandparent.borrow_mut().color = new_grandparent_colour;
-                            println!("Grandparent key after setting color to red: {:?}", grandparent.borrow().key);
                             node_ref = grandparent.clone();
                         }
                         
@@ -306,7 +303,6 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                         let parent_weak = new_node.borrow().parent.clone().unwrap();
                         let parent_upgrade = parent_weak.upgrade().unwrap();
                         node_ref = parent_upgrade.clone();
-                        println!("Parent key after setting color to black: {:?}", parent_upgrade.borrow().key);
                         self.rotate_right(parent_upgrade);
                     }
 
@@ -315,7 +311,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                     let parent_upgrade = parent_weak.upgrade().unwrap();
                     
                     parent_upgrade.borrow_mut().color = NodeColor::Black;
-                    println!("Parent key after setting color to black: {:?}", parent_upgrade.borrow().key);
+                   
 
                     let grandparent = match parent_upgrade.borrow().parent {
                         Some(ref parent_node) => Some(parent_node.upgrade().unwrap()),
@@ -324,7 +320,6 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
 
                     if let Some(ref grandparent) = grandparent {
                         grandparent.borrow_mut().color = NodeColor::Red;
-                        println!("Grandparent key after setting color to red: {:?}", grandparent.borrow().key);
                         self.rotate_left(grandparent.clone());
                         // node_ref = grandparent.clone();
                     }

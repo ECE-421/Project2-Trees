@@ -7,6 +7,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let values: Vec<i64> = (0..size).collect();
         c.bench_function(&format!("insert_{}", size), |b| {
             b.iter(|| {
+                tree = rbt::RedBlackTreeSet::new();
                 for &value in &values {
                     tree.insert(black_box(value));
                 }
@@ -24,7 +25,6 @@ fn criterion_benchmark(c: &mut Criterion) {
                 }
             });
         });
-
 
     }
 }
