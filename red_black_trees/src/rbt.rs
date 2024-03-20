@@ -6,7 +6,6 @@ use std::fmt::Debug;
 use std::cmp::PartialEq;
 use std::fmt::{Display, Formatter};
 
-use crate::main;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum NodeColor {
