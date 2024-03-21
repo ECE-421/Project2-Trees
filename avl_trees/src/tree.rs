@@ -157,10 +157,9 @@ impl<T: Clone + Ord + Debug> Tree<T> {
             }
             // Node has two children
             else {
+
                 let successor = Self::min_value_node(node.borrow().right.as_ref().unwrap().clone());
                 let successor_data = successor.borrow().data.clone();
-                drop(node.borrow_mut());
-
                 node.borrow_mut().right = Self::delete_rec(&successor, &successor_data);
                 node.borrow_mut().data = successor_data;
             }
@@ -183,7 +182,7 @@ impl<T: Clone + Ord + Debug> Tree<T> {
     }
 
     ///Return the number of leaves in the tree
-    fn leaves(&self) -> usize {
+    pub fn leaves(&self) -> usize {
         match *self {
             Tree::Empty => 0,
             Tree::Root(ref root) => {

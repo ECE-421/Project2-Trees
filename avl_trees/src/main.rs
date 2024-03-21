@@ -8,7 +8,7 @@ fn main() {
 
     let mut tree:Tree<u32>= Tree::new();
     loop {
-        println!("Red-Black Tree Operations:");
+        println!("AVL Tree Operations:");
         println!("1. Insert");
         println!("2. Search");
         println!("3. Delete");
