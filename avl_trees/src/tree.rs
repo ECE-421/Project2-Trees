@@ -136,34 +136,39 @@ impl<T: Clone + Ord + Debug> Tree<T> {
     }
 
     fn delete_rec(node: &NodePtr<T>, data: &T) -> Option<NodePtr<T>> {
-        let mut node_borrow = node.borrow_mut();
-        if data < &node_borrow.data {
-            if let Some(ref left) = node_borrow.left {
-                node_borrow.left = Self::delete_rec(left, data);
+        if data < &node.borrow().data {
+            if let Some(ref left) = node.borrow().left {
+                node.borrow_mut().left = Self::delete_rec(left, data);
             }
-        } else if data > &node_borrow.data {
-            if let Some(ref right) = node_borrow.right {
-                node_borrow.right = Self::delete_rec(right, data);
+        } else if data > &node.borrow().data {
+            if let Some(ref right) = node.borrow().right {
+                node.borrow_mut().right = Self::delete_rec(right, data);
             }
         } else {
-            if node_borrow.left.is_none() && node_borrow.right.is_none() {
+            // Node has no children
+            if node.borrow().left.is_none() && node.borrow().right.is_none() {
                 return None;
-            } else if node_borrow.left.is_none() {
-                return node_borrow.right.clone();
-            } else if node_borrow.right.is_none() {
-                return node_borrow.left.clone();
-            } else {
-                let successor = Self::min_value_node(node_borrow.right.as_ref().unwrap().clone());
-                node_borrow.data = successor.borrow().data.clone();
-                node_borrow.right = Self::delete_rec(&node_borrow.right.clone().unwrap(), &successor.borrow().data);
+            }
+            // Node has only one child
+            else if node.borrow().left.is_none() {
+                return node.borrow().right.clone();
+            } else if node.borrow().right.is_none() {
+                return node.borrow().left.clone();
+            }
+            // Node has two children
+            else {
+                let successor = Self::min_value_node(node.borrow().right.as_ref().unwrap().clone());
+                let successor_data = successor.borrow().data.clone();
+                drop(node.borrow_mut());
+
+                node.borrow_mut().right = Self::delete_rec(&successor, &successor_data);
+                node.borrow_mut().data = successor_data;
             }
         }
-        drop(node_borrow);
         Node::update_height(node);
-        
         Some(Self::rebalance(node.clone()))
     }
-
+    
 
     fn min_value_node(node: NodePtr<T>) -> NodePtr<T> {
         let mut current = node;
