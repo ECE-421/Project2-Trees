@@ -109,7 +109,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                     self.find_recursion(&node.borrow().right, key)
                 } else {
                     let tnode = node.borrow().clone();
-                    // println!("Node:\n\n : {}", tnode);
+                    println!("Found Node: {}", tnode);
                     // println!("Found {}\n", node.borrow().key);
                     Some(node.clone())
                 }
@@ -438,21 +438,21 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
             x = z_left.clone();
             self.transplant(&found_node_ref.clone(), &x.clone());
         } else {
-            let minimum_node = self.find_minimum(&found_node_ref.clone().as_ref().unwrap().borrow().right.clone()).clone();
-            println!("the minimum node was: {}", minimum_node.as_ref().unwrap().borrow().key);
-            y_original_color = minimum_node.as_ref().unwrap().borrow().color.clone();
-            x = minimum_node.as_ref().unwrap().borrow().right.clone();
+            let y = self.find_minimum(&found_node_ref.clone().as_ref().unwrap().borrow().right.clone()).clone();
+            println!("the minimum node was: {}", y.as_ref().unwrap().borrow().key);
+            y_original_color = y.as_ref().unwrap().borrow().color.clone();
+            x = y.as_ref().unwrap().borrow().right.clone();
 
 
-            let minimum_parent = match minimum_node.as_ref().unwrap().borrow().parent {
+            let minimum_parent = match y.as_ref().unwrap().borrow().parent {
                 Some(ref parent_node) => Some(parent_node.upgrade().unwrap()),
                 None => None,
             };
 
             println!("sending this parent:{:}",minimum_parent.as_ref().unwrap().borrow().key);
-
+            self.find(minimum_parent.as_ref().unwrap().borrow().key);
             parent = Some(Rc::downgrade(&minimum_parent.as_ref().unwrap()));
-
+            self.find(minimum_parent.as_ref().unwrap().borrow().key);
             if minimum_parent.unwrap().borrow().key == found_node_ref.as_ref().unwrap().borrow().key {
                 // Here you have access to the key of the minimum node's parent
                 // println!("Minimum parent key: {:?}", minimum_parent.upgrade().unwrap().borrow().key);
@@ -461,19 +461,47 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                     x_ref.borrow_mut().parent = Some(Rc::downgrade(&y.as_ref().unwrap()));
                 }
             } else {
-                self.transplant(&minimum_node.clone(), &minimum_node.as_ref().unwrap().borrow().right.clone());
-                minimum_node.as_ref().unwrap().borrow_mut().right = z_right.clone();
-                minimum_node.as_ref().unwrap().borrow_mut().right.as_ref().unwrap().borrow_mut().parent = Some(Rc::downgrade(&y.as_ref().unwrap()));
+                self.transplant(&y.clone(), &y.as_ref().unwrap().borrow().right.clone());
+               
+                y.as_ref().unwrap().borrow_mut().right = z_right.clone();
+                y.as_ref().unwrap().borrow_mut().right.as_ref().unwrap().borrow_mut().parent = Some(Rc::downgrade(&y.as_ref().unwrap()));
+                let minimum_parent = match y.as_ref().unwrap().borrow().parent {
+                    Some(ref parent_node) => Some(parent_node.upgrade().unwrap()),
+                    None => None,
+                };
+                println!("bewfore transpose");
+                self.find(minimum_parent.as_ref().unwrap().borrow().key);
             }
-            self.transplant(&found_node_ref.clone(), &minimum_node.clone());
-            minimum_node.as_ref().unwrap().borrow_mut().left = z_left.clone();
-            minimum_node.as_ref().unwrap().borrow_mut().left.as_ref().unwrap().borrow_mut().parent = Some(Rc::downgrade(&y.as_ref().unwrap()));
-            minimum_node.as_ref().unwrap().borrow_mut().color = found_node_ref.as_ref().unwrap().borrow().color.clone();
+
+            let minimum_parent = match y.as_ref().unwrap().borrow().parent {
+                Some(ref parent_node) => Some(parent_node.upgrade().unwrap()),
+                None => None,
+            };
+            println!("after transpose fouynd node: {}", found_node_ref.as_ref().unwrap().borrow().key);
+            self.find(minimum_parent.as_ref().unwrap().borrow().key);
+            self.transplant(&found_node_ref.clone(), &y.clone());
+            let minimum_parent = match y.as_ref().unwrap().borrow().parent {
+                Some(ref parent_node) => Some(parent_node.upgrade().unwrap()),
+                None => None,
+            };
+            println!("after transpose");
+            println!("after transpose fouynd node: {}", found_node_ref.as_ref().unwrap().borrow().key);
+            self.find(minimum_parent.as_ref().unwrap().borrow().key);
+            self.find(found_node_ref.as_ref().unwrap().borrow().key);
+
+
+            println!("after transpose fouynd node: {}", z_left.as_ref().unwrap().borrow().key);
+            println!("after transpose fouynd node: {}", y.as_ref().unwrap().borrow().key);
+            // println!("after transpose fouynd node: {}", z_left.as_ref().unwrap().borrow().key);
+            
+            y.as_ref().unwrap().borrow_mut().left = z_left.clone();
+            y.as_ref().unwrap().borrow_mut().left.as_ref().unwrap().borrow_mut().parent = Some(Rc::downgrade(&y.as_ref().unwrap()));
+            y.as_ref().unwrap().borrow_mut().color = found_node_ref.as_ref().unwrap().borrow().color.clone();
         }
         println!("{}", Rc::strong_count(&found_node_ref.as_ref().unwrap()));
         self.print_tree();
         if y_original_color == NodeColor::Black {
-            // self.fix_delete(x, parent);
+            self.fix_delete(x, parent);
         }
     }
     
@@ -482,7 +510,7 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
         self.print_tree();
         let mut x_ref = x.clone();
         let parent_ref_weak = parent.clone();
-        // let mut parent_ref = parent_ref_weak.upgrade();
+        // let mut parent_ref = parent_ref_weak.unwrap().upgrade();
 
 
     
@@ -498,15 +526,6 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                         Some(parent_node.upgrade().as_ref().unwrap().borrow().right.as_ref().unwrap().clone())},
                     None => None,
                 };
-
-                // let left_sibling = match parent.as_ref().unwrap().borrow().left {
-                //     Some(ref parent_node) => {
-                //         println!("The key for left sibling is: {}", parent_node.borrow().key);
-                //         Some(parent_node.clone())},
-                //     None => None,
-                // };
-
-
 
                 // case 1 sibling is red
                 if right_sibling.is_some() && right_sibling.as_ref().unwrap().borrow().color == NodeColor::Red {
@@ -553,16 +572,9 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                         // Case 4: Sibling's right child is red
                         if let Some(ref w_node) = right_sibling {
                             let parent_upgrde = parent_ref_weak.as_ref().unwrap().upgrade().clone();
-                            // right_sibling.as_ref().unwrap().borrow_mut().color = parent_upgrde.as_ref().unwrap().borrow().color.clone();
-                            println!("sibling now black: {}", right_sibling.as_ref().unwrap().borrow().key);
-                            // parent_upgrde.as_ref().unwrap().borrow_mut().color = NodeColor::Black;
-                            println!("parent now black: {}", parent_upgrde.as_ref().unwrap().borrow().key);
+                            right_sibling.as_ref().unwrap().borrow_mut().color = parent_upgrde.as_ref().unwrap().borrow().color.clone();
+                            parent_upgrde.as_ref().unwrap().borrow_mut().color = NodeColor::Black;
                             right_sibling.as_ref().unwrap().borrow_mut().right.as_mut().unwrap().borrow_mut().color = NodeColor::Black;
-                            println!("sibling now black: {}", right_sibling.as_ref().unwrap().borrow().right.as_ref().unwrap().borrow().key);
-                            println!("rotate left: {}", parent_upgrde.as_ref().unwrap().borrow().key);
-                            println!("right sibling: {}", parent_upgrde.as_ref().unwrap().borrow().right.as_ref().unwrap().borrow().key);
-                            
-                            self.print_tree();
                             self.rotate_left(parent_upgrde.as_ref().unwrap().clone());
                             
                             // x_ref = self.root.clone();
@@ -572,232 +584,184 @@ impl<T: Ord + fmt::Debug> RedBlackTreeSet<T> where T: Ord+Display+Debug+Clone+Co
                 }
             
 
+     
+            } else {
+                if x_ref.is_none() || (x_ref.as_ref().unwrap().borrow().key == parent.as_ref().unwrap().upgrade().unwrap().borrow().left.as_ref().unwrap().borrow().key) {
+                    // right sibling exists and is red
+    
+                    let mut right_sibling = match parent {
+                        Some(ref parent_node) => {
+                            println!("The key for right sibling is: {}", parent_node.upgrade().as_ref().unwrap().borrow().key);
+                            Some(parent_node.upgrade().as_ref().unwrap().borrow().right.as_ref().unwrap().clone())},
+                        None => None,
+                    };
+    
+                    // case 1 sibling is red
+                    if right_sibling.is_some() && right_sibling.as_ref().unwrap().borrow().color == NodeColor::Red {
+                        let mut w = right_sibling.as_ref().unwrap().clone();
+                        w.borrow_mut().color = NodeColor::Black;
+                        let parent_upgrade = parent_ref_weak.clone().unwrap().upgrade().clone();
+    
+                        
+                        self.rotate_left(parent_upgrade.as_ref().unwrap().clone());
+                        parent_upgrade.as_ref().unwrap().borrow_mut().color = NodeColor::Red;
+                        println!("sibling was: {}", w.borrow().key);
+                        w = parent_upgrade.as_ref().expect("").borrow().right.as_ref().unwrap().clone();    
+                        println!("sibling is now: {}", w.borrow().key);
+                    }
+    
+                    
+                     
+                    // case 2: Both children of the sibling are black
+                    if let Some(ref right_sibling_node) = right_sibling {
+                        if (right_sibling_node.borrow().right.is_none() || right_sibling_node.borrow().right.as_ref().unwrap().borrow().color == NodeColor::Black) &&
+                        (right_sibling_node.borrow().left.is_none() || right_sibling_node.borrow().left.as_ref().unwrap().borrow().color == NodeColor::Black) {
+                            let mut w = right_sibling_node.clone();
+                            w.borrow_mut().color = NodeColor::Red;
+                            println!("parent was: {}", x_ref.as_ref().unwrap().borrow().key);
+                            let parent_upgrade = parent_ref_weak.clone().unwrap().upgrade().clone();
+    
+                            x_ref = parent_upgrade.clone();
+                            println!("parent is now: {}", x_ref.as_ref().unwrap().borrow().key);
+                        } else {
+                            // Case 3: Sibling's right child is black
+                            if let Some(ref w_node) = right_sibling {
+                                if w_node.borrow().right.is_some() && w_node.borrow().right.as_ref().unwrap().borrow().color == NodeColor::Black {
+                                    w_node.borrow_mut().left.as_mut().unwrap().borrow_mut().color = NodeColor::Black;
+                                    w_node.borrow_mut().color = NodeColor::Red;
+                                    self.rotate_right(w_node.clone());
+                                    println!("sibling was: {}", right_sibling.as_ref().unwrap().borrow().key);
+                                    let parent_upgrade = parent_ref_weak.clone().unwrap().upgrade().clone();
+    
+                                    right_sibling = parent_upgrade.as_ref().unwrap().borrow().right.clone(); // Update w after rotation
+                                    println!("sibling is now: {}", right_sibling.as_ref().unwrap().borrow().key);
+                                }
+                            }
+    
+                            // Case 4: Sibling's right child is red
+                            if let Some(ref w_node) = right_sibling {
+                                let parent_upgrde = parent_ref_weak.as_ref().unwrap().upgrade().clone();
+                                right_sibling.as_ref().unwrap().borrow_mut().color = parent_upgrde.as_ref().unwrap().borrow().color.clone();
+                                parent_upgrde.as_ref().unwrap().borrow_mut().color = NodeColor::Black;
+                                right_sibling.as_ref().unwrap().borrow_mut().right.as_mut().unwrap().borrow_mut().color = NodeColor::Black;
+                                self.rotate_left(parent_upgrde.as_ref().unwrap().clone());
+                                
+                                // x_ref = self.root.clone();
+    
+                            }
+                        }
+                    }
+            }
+            
+            // else {
+            //     let mut left_sibling = match parent {
+            //         Some(ref parent_node) => {
+            //             println!("The key for right sibling is: {}", parent_node.upgrade().as_ref().unwrap().borrow().key);
+            //             Some(parent_node.upgrade().as_ref().unwrap().borrow().left.as_ref().unwrap().clone())},
+            //         None => None,
+            //     };
+
+            //     // case 1 sibling is red
+            //     if left_sibling.is_some() && left_sibling.as_ref().unwrap().borrow().color == NodeColor::Red {
+            //         let mut w = left_sibling.as_ref().unwrap().clone();
+            //         w.borrow_mut().color = NodeColor::Black;
+            //         // let parent_upgrade = parent_ref_weak.clone().unwrap().upgrade().clone();
+
+                    
+            //         // self.rotate_right(parent_upgrade.as_ref().unwrap().clone());
+            //         // parent_upgrade.as_ref().unwrap().borrow_mut().color = NodeColor::Red;
+            //         // println!("sibling was: {}", w.borrow().key);
+            //         // w = parent_upgrade.as_ref().expect("").borrow().right.as_ref().unwrap().clone();    
+            //         // println!("sibling is now: {}", w.borrow().key);
+            //     }
+
+                
+                
+            //     // case 2: Both children of the sibling are black
+            //     if let Some(ref left_sibling_node) = left_sibling {
+            //         if (left_sibling_node.borrow().right.is_none() || left_sibling_node.borrow().right.as_ref().unwrap().borrow().color == NodeColor::Black) &&
+            //         (left_sibling_node.borrow().left.is_none() || left_sibling_node.borrow().left.as_ref().unwrap().borrow().color == NodeColor::Black) {
+            //             let mut w = left_sibling_node.clone();
+            //             w.borrow_mut().color = NodeColor::Red;
+            //             println!("parent was: {}", x_ref.as_ref().unwrap().borrow().key);
+            //             // let parent_upgrade = parent_ref_weak.clone().unwrap().upgrade().clone();
+
+            //             x_ref = parent_upgrade.clone();
+            //             println!("parent is now: {}", x_ref.as_ref().unwrap().borrow().key);
+            //         } else {
+            //             // Case 3: Sibling's right child is black
+            //             if let Some(ref w_node) = left_sibling {
+            //                 if w_node.borrow().right.is_some() && w_node.borrow().left.as_ref().unwrap().borrow().color == NodeColor::Black {
+            //                     w_node.borrow_mut().left.as_mut().unwrap().borrow_mut().color = NodeColor::Black;
+            //                     w_node.borrow_mut().color = NodeColor::Red;
+            //                     self.rotate_right(w_node.clone());
+            //                     println!("sibling was: {}", left_sibling.as_ref().unwrap().borrow().key);
+            //                     // let parent_upgrade = parent_ref_weak.clone().unwrap().upgrade().clone();s
+
+            //                     // left_sibling = parent_upgrade.as_ref().unwrap().borrow().left.clone(); // Update w after rotation
+            //                     println!("sibling is now: {}", left_sibling.as_ref().unwrap().borrow().key);
+            //                 }
+            //             }
+
+            //             // Case 4: Sibling's right child is red
+            //             if let Some(ref w_node) = left_sibling {
+            //                 // let parent_upgrde = parent_ref_weak.as_ref().unwrap().upgrade().clone();
+            //                 // right_sibling.as_ref().unwrap().borrow_mut().color = parent_upgrde.as_ref().unwrap().borrow().color.clone();
+            //                 println!("sibling now black: {}", left_sibling.as_ref().unwrap().borrow().key);
+            //                 // parent_upgrde.as_ref().unwrap().borrow_mut().color = NodeColor::Black;
+            //                 // println!("parent now black: {}", parent_upgrde.as_ref().unwrap().borrow().key);
+            //                 // left_sibling.as_ref().unwrap().borrow_mut().left.as_mut().unwrap().borrow_mut().color = NodeColor::Black;
+            //                 // println!("sibling now black: {}", left_sibling.as_ref().unwrap().borrow().left.as_ref().unwrap().borrow().key);
+            //                 // println!("rotate left: {}", parent_upgrde.as_ref().unwrap().borrow().key);
+            //                 // println!("right sibling: {}", parent_upgrde.as_ref().unwrap().borrow().left.as_ref().unwrap().borrow().key);
+                            
+            //                 self.print_tree();
+            //                 // self.rotate_right(parent_upgrde.as_ref().unwrap().clone());
+                            
+            //                 // x_ref = self.root.clone();
+
+            //             }
+            //         }
+            //     }
             // }
-        }
             
             
-        //     if Some(true) == self.is_left_child(&x_ref) {
-        //         //find grand_parent
-        //         let x_parent = match x_ref.borrow().parent {
-        //             Some(ref parent_node) => Some(parent_node.upgrade().unwrap()),
-        //             None => None,
-        //         };
-
-        //         //find sibling
-        //         // if sibling exists it must be right child of parent
-        //         let sibling_ref = match x_parent {
-        //             Some(ref parent_node) => {
-        //                 parent_node.borrow().right.clone()
-        //             },
-        //             None => None,
-        //         };
-
-        //         if sibling_ref.is_some() && sibling_ref.as_ref().unwrap().borrow().color == NodeColor::Red {
-        //             let sibling = sibling_ref.as_ref().unwrap().clone();
-        //             sibling.borrow_mut().color = NodeColor::Black;
-    
-
-        //             //set parent to red
-        //             x_parent.as_ref().unwrap().borrow_mut().color = NodeColor::Red;
-
-        //             //perform left rotation
-        //             self.rotate_left(x_parent.as_ref().unwrap().clone());
-
-        //             // Update sibling reference
-        //             if let Some(parent_weak) = &x_ref.borrow().parent {
-        //                 if let Some(parent) = parent_weak.upgrade() {
-        //                     let new_sibling_ref = x_ref.borrow().right.clone();
-        //                     parent.borrow_mut().right = new_sibling_ref;
-        //                 }
-        //             }
-        //         } else if sibling_ref.as_ref().unwrap().borrow().left.is_some() &&sibling_ref.as_ref().unwrap().borrow().right.is_some() {
-        //             if sibling_ref.as_ref().unwrap().borrow().left.as_ref().unwrap().borrow().color == NodeColor::Black && sibling_ref.as_ref().unwrap().borrow().right.as_ref().unwrap().borrow().color == NodeColor::Black {
-        //                 let sibling = sibling_ref.as_ref().unwrap().clone();
-        //                 sibling.borrow_mut().color = NodeColor::Red;
-
-        //                 // TODO set x = x.parent
-        //                 x_ref = x_parent.unwrap();
-        //             } else {
-        //                 if sibling_ref.as_ref().unwrap().borrow().right.as_ref().unwrap().borrow().color == NodeColor::Black {
-        //                     //w.left.color = black
-        //                     //w .color = red
-        //                     //right_rotate()
-        //                     //w = x.parent.right
-        //                     let w = sibling_ref.as_ref().unwrap().clone();
-        //                     w.borrow_mut().left.as_ref().unwrap().borrow_mut().color = NodeColor::Black;
-        //                     w.borrow_mut().color = NodeColor::Red;
-        
-        //                     self.rotate_right(w.clone());
-        
-        //                     // Update sibling reference
-        //                     if let Some(parent_weak) = &x_ref.borrow().parent {
-        //                         if let Some(parent) = parent_weak.upgrade() {
-        //                             let new_sibling_ref = x_ref.borrow().right.clone();
-        //                             parent.borrow_mut().right = new_sibling_ref;
-        //                         }
-        //                     }
-        //                     // Reassign sibling_ref to x.parent.right after rotation
-        //                     let sibling_ref = x_ref.borrow().parent.as_ref().unwrap().upgrade().unwrap().borrow().right.clone();
-                          
-        //                 }
-
-        //                 // Case 4: Adjust colors and perform a left rotation
-        //                 let w = sibling_ref.as_ref().unwrap().clone();
-        //                 let mut new_x_ref = None;
-        //                 // Case 4: Adjust colors and perform a left rotation
-        //                 if let Some(parent_weak) = &x_ref.borrow().parent {
-        //                     if let Some(parent) = parent_weak.upgrade() {
-        //                         let w_color = &w.borrow().color;
-        //                         w.borrow_mut().color = parent.borrow().color.clone();
-        //                         parent.borrow_mut().color = NodeColor::Black;
-        //                         w.borrow_mut().right.as_ref().unwrap().borrow_mut().color = NodeColor::Black;
-        //                         self.rotate_left(parent.clone());
-
-        //                         if let Some(root) = &self.root {
-        //                             new_x_ref = Some(root.clone());
-        //                         }
-                                
-        //                     }
-         
-        //                 }
-        //                 if let Some(new_ref) = new_x_ref {
-        //                     x_ref = new_ref;
-        //                 }
-
-
-        //             }
-                    
-        //         }
-
-        //     } else {
-        //         //find grand_parent
-        //         let x_parent = match x_ref.borrow().parent {
-        //             Some(ref parent_node) => Some(parent_node.upgrade().unwrap()),
-        //             None => None,
-        //         };
-
-        //         //find sibling
-        //         // if sibling exists it must be right child of parent
-        //         let sibling_ref = match x_parent {
-        //             Some(ref parent_node) => {
-        //                 parent_node.borrow().left.clone()
-        //             },
-        //             None => None,
-        //         };
-
-        //         if sibling_ref.is_some() && sibling_ref.as_ref().unwrap().borrow().color == NodeColor::Red {
-        //             let sibling = sibling_ref.as_ref().unwrap().clone();
-        //             sibling.borrow_mut().color = NodeColor::Black;
-    
-
-        //             //set parent to red
-        //             x_parent.as_ref().unwrap().borrow_mut().color = NodeColor::Red;
-
-        //             //perform left rotation
-        //             self.rotate_right(x_parent.as_ref().unwrap().clone());
-
-        //             // Update sibling reference
-        //             if let Some(parent_weak) = &x_ref.borrow().parent {
-        //                 if let Some(parent) = parent_weak.upgrade() {
-        //                     let new_sibling_ref = x_ref.borrow().right.clone();
-        //                     parent.borrow_mut().right = new_sibling_ref;
-        //                 }
-        //             }
-        //         } else if sibling_ref.as_ref().unwrap().borrow().right.is_some() &&sibling_ref.as_ref().unwrap().borrow().left.is_some() {
-        //             if sibling_ref.as_ref().unwrap().borrow().left.as_ref().unwrap().borrow().color == NodeColor::Black && sibling_ref.as_ref().unwrap().borrow().right.as_ref().unwrap().borrow().color == NodeColor::Black {
-        //                 let sibling = sibling_ref.as_ref().unwrap().clone();
-        //                 sibling.borrow_mut().color = NodeColor::Red;
-
-        //                 // TODO set x = x.parent
-        //                 x_ref = x_parent.unwrap();
-        //             } else {
-        //                 if sibling_ref.as_ref().unwrap().borrow().left.as_ref().unwrap().borrow().color == NodeColor::Black {
-        //                     //w.left.color = black
-        //                     //w .color = red
-        //                     //right_rotate()
-        //                     //w = x.parent.right
-        //                     let w = sibling_ref.as_ref().unwrap().clone();
-        //                     w.borrow_mut().left.as_ref().unwrap().borrow_mut().color = NodeColor::Black;
-        //                     w.borrow_mut().color = NodeColor::Red;
-        
-        //                     self.rotate_left(w.clone());
-        
-        //                     // Update sibling reference
-        //                     if let Some(parent_weak) = &x_ref.borrow().parent {
-        //                         if let Some(parent) = parent_weak.upgrade() {
-        //                             let new_sibling_ref = x_ref.borrow().left.clone();
-        //                             parent.borrow_mut().right = new_sibling_ref;
-        //                         }
-        //                     }
-        //                     // Reassign sibling_ref to x.parent.right after rotation
-        //                     let sibling_ref = x_ref.borrow().parent.as_ref().unwrap().upgrade().unwrap().borrow().left.clone();
-                          
-        //                 }
-
-        //                 // Case 4: Adjust colors and perform a left rotation
-        //                 let w = sibling_ref.as_ref().unwrap().clone();
-        //                 let mut new_x_ref = None;
-        //                 // Case 4: Adjust colors and perform a left rotation
-        //                 if let Some(parent_weak) = &x_ref.borrow().parent {
-        //                     if let Some(parent) = parent_weak.upgrade() {
-        //                         let w_color = &w.borrow().color;
-        //                         w.borrow_mut().color = parent.borrow().color.clone();
-        //                         parent.borrow_mut().color = NodeColor::Black;
-        //                         w.borrow_mut().right.as_ref().unwrap().borrow_mut().color = NodeColor::Black;
-        //                         self.rotate_right(parent.clone());
-
-        //                         if let Some(root) = &self.root {
-        //                             new_x_ref = Some(root.clone());
-        //                         }
-                                
-        //                     }
-         
-        //                 }
-        //                 if let Some(new_ref) = new_x_ref {
-        //                     x_ref = new_ref;
-        //                 }
-
-
-        //             }
-                    
-        //         }
-        //     }
         // }
 
         // x.borrow_mut().color = NodeColor::Black;
+        }
     }
 
 
     fn transplant(&mut self, u: &RedBlackTree<T>, v: &RedBlackTree<T>) {
         let u_node = u.as_ref().unwrap().clone();
         let u_parent = u.as_ref().unwrap().borrow().parent.clone();
+            
+        
+        let u_parent_upgrade = match u_parent.clone() {
+            Some(upgrade_parent) => upgrade_parent.upgrade().unwrap(),
+            None => return, // Handle the case when u_parent is None, if needed
+        };
+        
     
         // Check if u is root
         if u_parent.is_none() {
             self.root = v.clone();
-        } else if Some(true) == self.is_left_child(&u_node) {
-            if let Some(u_parent_ref) = u_parent.clone() {
-                let u_parent_upgrade = u_parent_ref.upgrade().unwrap();
-                u_parent_upgrade.borrow_mut().left = v.clone();
-            }
+        } 
+
+        
+        if Some(true) == self.is_left_child(&u_node) {
+            u_parent_upgrade.borrow_mut().left = v.clone();
         } else {
-            if let Some(u_parent_ref) = u_parent.clone() {
-                let u_parent_upgrade = u_parent_ref.upgrade().unwrap();
-                u_parent_upgrade.borrow_mut().right = v.clone();
-            }
+            u_parent_upgrade.borrow_mut().right = v.clone();
         }
     
         // Set the parent of v to be the parent of u
         if let Some(v_node) = v.clone() {
-            if let Some(u_parent_ref) = u_parent.clone() {
-                let u_parent_upgrade = u_parent_ref.upgrade().unwrap();
-                println!("assigning ");
-                v_node.borrow_mut().parent = Some(Rc::downgrade(&u_parent_upgrade));
+                println!("assgning v.parent to {}", u_parent_upgrade.borrow().key);
+                v_node.borrow_mut().parent = Some(Rc::downgrade(&u_parent_upgrade.clone()));
 
-            } 
-            // else {
-            //     v_node.borrow_mut().parent = None;
-            // }
+        
         }
     }
     
