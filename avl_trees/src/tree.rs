@@ -174,8 +174,110 @@ impl<T: Clone + Ord + Debug> Tree<T> {
         }
         current
     }
+
+    ///Return the number of leaves in the tree
+    fn leaves(&self) -> usize {
+        match *self {
+            Tree::Empty => 0,
+            Tree::Root(ref root) => {
+                if root.borrow().left.is_none() && root.borrow().right.is_none() {
+                    1
+                } else {
+                    //If node has children, return sum of recursive call of 'leaves' on children
+
+                    let mut sum = 0;
+
+                    //Check if both left and right children are Some
+                    if root.borrow().left.is_some() && root.borrow().right.is_some() {
+                        sum += Tree::Root(root.borrow().left.clone().unwrap()).leaves() + Tree::Root(root.borrow().right.clone().unwrap()).leaves();
+                    }
+
+                    //Check if only left child is Some
+                    if root.borrow().left.is_some() && root.borrow().right.is_none() {
+                        sum += Tree::Root(root.borrow().left.clone().unwrap()).leaves();
+                    }
+
+                    //Check if only right child is Some
+                    if root.borrow().left.is_none() && root.borrow().right.is_some() {
+                        sum += Tree::Root(root.borrow().right.clone().unwrap()).leaves();
+                    }
+
+                    return sum;
+                }
+            }
+        }
+    }
+
+    pub fn is_empty(&self) -> bool{
+        match *self {
+            Tree::Empty => true,
+            Tree::Root(_) => false,
+        }
+    }
+
+    pub fn print_in_order_traversal(&self) { 
+        match *self {
+            Tree::Empty => (),
+            Tree::Root(ref root) => {
+                if let Some(left) = &root.borrow().left {
+                    Tree::Root(left.clone()).print_in_order_traversal();
+                }
+                println!("{:?}", root.borrow().data);
+                if let Some(right) = &root.borrow().right {
+                    Tree::Root(right.clone()).print_in_order_traversal();
+                }
+            }
+        }
+    }
+
+    pub fn print_tree(&self, depth: usize, is_right: bool) {
+        match *self {
+            Tree::Empty => (),
+            Tree::Root(ref root) => {
+                for _ in 0..depth {
+                    print!("    ");
+                }
+                if(depth > 0){
+                    //TODO print the spaces for the number of characters of the parent node -1, to even the print 
+                    if is_right {
+                        print!("└─R─");
+                    } else {
+                        print!("├─L─");
+                    }
+                }
+                println!("{:?}", root.borrow().data);
+                if let Some(left) = &root.borrow().left {
+                    Tree::Root(left.clone()).print_tree(depth+1, false);
+                }
+                if let Some(right) = &root.borrow().right {
+                    Tree::Root(right.clone()).print_tree(depth+1, true);
+                }
+            }
+        }
+    }
+
+    pub fn get_height(&self, count: usize) -> usize {
+        match *self {
+            Tree::Empty => 0,
+            Tree::Root(ref root ) => {
+                let mut left_height = 0;
+                let mut right_height = 0;
+                if let Some(left) = &root.borrow().left {
+                    left_height += Tree::Root(left.clone()).get_height(count + 1);
+                }
+                if let Some(right) = &root.borrow().right {
+                    right_height += Tree::Root(right.clone()).get_height(count +1);
+                }
+                std::cmp::max(left_height, right_height) + 1
+            }
+        }
+    }
 }
 
+
+//HOW IS root.clone() DIFFERENT THAN root.borrow().left().clone().unwrap()? 
+    //root.clone() ->  cloning an RC returns the value wrapped in the RC. 
+    //root.borrow() -> immutably borrows the value in the RefCell 
 
 #[cfg(test)]
 mod tests {
@@ -196,7 +298,7 @@ mod tests {
     fn test_insert_lesser_than_root() {
         let mut tree = Tree::new();
         tree.insert(10);
-        tree.insert(5); 
+        tree.insert(5);
         if let Tree::Root(node) = &tree {
             if let Some(left_child) = &node.borrow().left {
                 assert_eq!(left_child.borrow().data, 5);
@@ -230,8 +332,14 @@ mod tests {
         tree.insert(10);
         tree.insert(10);
         if let Tree::Root(node) = &tree {
-            assert!(node.borrow().left.is_none(), "Left child should not exist for a duplicate value");
-            assert!(node.borrow().right.is_none(), "Right child should not exist for a duplicate value");
+            assert!(
+                node.borrow().left.is_none(),
+                "Left child should not exist for a duplicate value"
+            );
+            assert!(
+                node.borrow().right.is_none(),
+                "Right child should not exist for a duplicate value"
+            );
         } else {
             panic!("Tree was expected to have a root");
         }
@@ -284,5 +392,69 @@ mod tests {
         } else {
             panic!("Tree was expected to have a root");
         }
+    }
+
+    #[test]
+    fn test_leaves_count(){
+        let mut tree = Tree::new();
+        tree.insert(2);
+        tree.insert(1);
+        tree.insert(3);
+        tree.insert(4);
+        tree.insert(5);
+        // println!("{:#?}", tree);
+        assert_eq!(tree.leaves(), 3);
+    }
+
+    #[test]
+    fn test_is_tree_empty(){
+        let mut tree = Tree::new();
+        assert_eq!(tree.is_empty(), true);
+        tree.insert(2);
+        assert_eq!(tree.is_empty(), false);
+        tree.delete(2);
+        // println!("{:#?}", tree);
+        assert_eq!(tree.is_empty(), true);
+    }
+    
+    #[test]
+    fn test_in_order_print(){
+        let mut tree = Tree::new();
+        tree.insert(10);
+        tree.insert(5);
+        tree.insert(15);
+        tree.insert(3);
+        tree.insert(7);
+        tree.insert(12);
+        tree.insert(17);
+        tree.insert(4);
+        tree.insert(16);
+        tree.print_in_order_traversal();
+    }
+
+    #[test]
+    fn test_print_tree(){
+        let mut tree = Tree::new();
+        tree.insert(50);
+        tree.insert(40);
+        tree.insert(30);
+        tree.insert(70);
+        tree.insert(80);
+        tree.insert(60);
+        tree.print_tree(0, true);
+    }
+
+    #[test]
+    fn test_get_height(){
+        let mut tree: Tree<i32> = Tree::new();
+        assert_eq!(tree.get_height(0), 0 );
+        tree.insert(50);
+        assert_eq!(tree.get_height(0), 1 );
+        tree.insert(40);
+        assert_eq!(tree.get_height(0), 2 );
+        tree.insert(30);
+        tree.insert(70);
+        tree.insert(80);
+        assert_eq!(tree.get_height(0), 3 );
     }
 }
